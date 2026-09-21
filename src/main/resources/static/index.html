@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>岩层滴算台</title>
+<style>
+:root { --bg:#0f1512; --panel:#18221c; --ink:#e7efe8; --muted:#93a698;
+        --accent:#5fd08a; --warn:#e2b04f; --bad:#e06a5a; --line:#2c3b32; }
+* { box-sizing:border-box; }
+body { margin:0; font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+       background:var(--bg); color:var(--ink); }
+header { padding:18px 26px; border-bottom:1px solid var(--line);
+         display:flex; align-items:baseline; gap:14px; flex-wrap:wrap; }
+h1 { margin:0; font-size:22px; letter-spacing:3px; }
+.subtitle { color:var(--muted); font-size:13px; }
+main { display:grid; grid-template-columns:320px 1fr; gap:16px; padding:16px; }
+.panel { background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:14px; }
+.panel h2 { font-size:14px; margin:0 0 10px; color:var(--accent); letter-spacing:1px; }
+.row { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px; align-items:center; }
+label { font-size:12px; color:var(--muted); }
+input,select,button { background:#0e1611; color:var(--ink); border:1px solid var(--line);
+        border-radius:6px; padding:6px 8px; font-size:12px; }
+button { cursor:pointer; }
+button.primary { background:var(--accent); color:#0c140f; border-color:var(--accent); font-weight:600; }
+button.warn { border-color:var(--warn); color:var(--warn); }
+button.danger { border-color:var(--bad); color:var(--bad); }
+.date-item, .hiatus-item { border:1px solid var(--line); border-radius:8px; padding:8px;
+        margin-bottom:8px; font-size:12px; }
+.date-item .id { font-weight:700; color:var(--accent); }
+.date-item .grp { color:#7fb6e0; }
+.excluded label { color:var(--bad); }
+.excluded { margin-top:6px; }
+.grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+.card { background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:12px; }
+.card h3 { margin:0 0 8px; font-size:13px; color:var(--accent); }
+svg { width:100%; height:auto; display:block; }
+.tabs { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px; }
+.tabs button.active { background:var(--accent); color:#0c140f; }
+.conflict { border:1px solid var(--bad); border-radius:8px; padding:10px; margin-bottom:10px;
+            background:#241714; font-size:12px; }
+.conflict .z { color:var(--bad); font-weight:700; }
+.gapbox { font-size:12px; border:1px solid var(--line); border-radius:8px; padding:8px; margin-bottom:8px; }
+table { width:100%; border-collapse:collapse; font-size:11px; }
+th,td { border-bottom:1px solid var(--line); padding:4px 6px; text-align:right; }
+th:first-child,td:first-child { text-align:left; }
+.missing { color:var(--muted); }
+.small { font-size:11px; color:var(--muted); }
+pre { white-space:pre-wrap; word-break:break-all; max-height:260px; overflow:auto;
+      background:#0c140f; border:1px solid var(--line); border-radius:6px; padding:8px; font-size:11px; }
+@media (max-width:1000px){ main{grid-template-columns:1fr;} .grid{grid-template-columns:1fr;} }
+</style>
+</head>
+<body>
+<header>
+  <h1>岩层滴算台</h1>
+  <span class="subtitle">石笋 U-Th 单调年代模型 · 不跨生长间断 · 多分支保留 · 不确定性传播到代理序列</span>
+</header>
+<main>
+  <div class="panel" id="controls">
+    <h2>数据与操作</h2>
+    <div class="row">
+      <button class="primary" onclick="runModel()">运行年代模型</button>
+      <button onclick="resetFixtures()">重置 fixture</button>
+      <button class="danger" onclick="clearData()">清空数据库</button>
+    </div>
+    <div class="row">
+      <label>抽样 <input id="draws" type="number" value="2000" min="100" step="100" style="width:90px"></label>
+      <label>种子 <input id="seed" type="number" value="20260921" style="width:110px"></label>
+    </div>
+    <div class="row">
+      <label>时间网格步长(ka) <input id="gridStep" type="number" value="0.5" step="0.1" style="width:70px"></label>
+      <label>走廊深度步长(mm) <input id="corridorStep" type="number" value="1" step="0.5" style="width:64px"></label>
+    </div>
+    <h2>年代锦标</h2>
+    <div id="dates"></div>
+    <h2>生长间断</h2>
+    <div id="hiatuses"></div>
+    <h2>验收辅助</h2>
+    <div class="row">
+      <button class="warn" onclick="conflictDemo()">制造同深度冲突（D2 深度，年龄 9.5 ka）</button>
+    </div>
+    <div class="row">
+      <button onclick="exportLatest()">导出最新运行 JSON</button>
+      <label class="small">或导入导出包复核：
+        <input type="file" id="importFile" accept="application/json"></label>
+      <button onclick="importRun(false)">仅复核并存档</button>
+      <button onclick="importRun(true)">复核并替换数据</button>
+    </div>
+    <h2>运行记录</h2>
+    <div id="runs" class="small"></div>
+  </div>
+
+  <div>
+    <div id="conflicts"></div>
+    <div class="tabs">
+      <button class="active" data-tab="corridor" onclick="showTab('corridor',this)">年龄走廊</button>
+      <button data-tab="rate" onclick="showTab('rate',this)">局部生长率</button>
+      <button data-tab="gap" onclick="showTab('gap',this)">间断时长</button>
+      <button data-tab="proxy" onclick="showTab('proxy',this)">代理时间网格</button>
+      <button data-tab="runs" onclick="showTab('runs',this)">记录与重放</button>
+    </div>
+
+    <section id="tab-corridor" class="card">
+      <h3>年龄走廊（2.5/50/97.5 分位；灰色=无年代支持缺失，间断绝不插值穿过）</h3>
+      <div id="corridorChart"></div>
+      <div class="small">分支切换：<span id="branchTabs"></span></div>
+    </section>
+    <section id="tab-rate" class="card" style="display:none">
+      <h3>局部生长率（mm/yr，仅由同生长段内相邻锦标计算）</h3>
+      <div id="rateChart"></div>
+    </section>
+    <section id="tab-gap" class="card" style="display:none">
+      <h3>间断时长统计</h3>
+      <div id="gapBoxes"></div>
+    </section>
+    <section id="tab-proxy" class="card" style="display:none">
+      <h3>代理指标在规则时间网格上的统计（颜色=覆盖率，缺失点保留）</h3>
+      <div id="proxyChart"></div>
+      <div id="proxyTable"></div>
+    </section>
+    <section id="tab-runs" class="card" style="display:none">
+      <h3>运行记录导出 / 复核</h3>
+      <div id="runDetail"></div>
+    </section>
+  </div>
+</main>
+<script src="/app.js"></script>
+</body>
+</html>

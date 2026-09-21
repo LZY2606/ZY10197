@@ -34,3 +34,8 @@ coverage/
 .vite/
 .turbo/
 *.tsbuildinfo
+
+# --- 岩层滴算台：本地 SQLite 数据库与冒烟产物（fixture 可随时重建）---
+data/
+smoke/
+*.db
