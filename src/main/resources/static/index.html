@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>岩层滴算台</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<header>
+  <div>
+    <p class="eyebrow">Stalagmite U-Th Chronology Bench</p>
+    <h1>岩层滴算台</h1>
+    <p>不跨越生长间断的单调年代模型；相关误差与多条年代分支独立传播。</p>
+  </div>
+  <div class="actions">
+    <button id="runBtn" class="primary">计算并保留运行记录</button>
+    <button id="resetBtn">恢复固定 fixture</button>
+    <button id="exportBtn">导出快照</button>
+    <button id="clearBtn">清空数据库</button>
+  </div>
+</header>
+
+<main>
+  <section class="panel controls">
+    <h2>研究设定</h2>
+    <div class="grid">
+      <label>代理指标名称<input id="proxyName"></label>
+      <label>时间网格起点<input id="gridStart" type="number"></label>
+      <label>时间网格终点<input id="gridStop" type="number"></label>
+      <label>网格步长<input id="gridStep" type="number"></label>
+      <label>分支数<input id="branchCount" type="number" min="8" max="1000"></label>
+      <label>共享校正 σ<input id="sharedCorrectionSigma" type="number"></label>
+    </div>
+    <h3>间断两侧开闭边界</h3>
+    <div class="grid">
+      <label>年轻侧边界深度<input id="youngDepth" type="number"></label>
+      <label>较老侧边界深度<input id="oldDepth" type="number"></label>
+      <label class="check"><input id="youngSideOpen" type="checkbox"> 年轻侧开边界（不向间断外推）</label>
+      <label class="check"><input id="oldSideOpen" type="checkbox"> 较老侧开边界（不向间断外推）</label>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>U-Th 年代锦标与固定控制点</h2>
+    <p class="hint">取消“启用”可排除某个锦标；相关组填写相同名称即共享碎屑/校正参数。</p>
+    <div class="table-wrap">
+      <table id="dateTable">
+        <thead><tr><th>ID</th><th>深度</th><th>年龄 yr BP</th><th>σ</th><th>相关组</th><th>类型</th><th>启用</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="conflictPanel" class="panel conflict hidden">
+    <h2>冲突证据</h2>
+    <div id="conflicts"></div>
+  </section>
+
+  <section class="panel two">
+    <div>
+      <h2>年龄走廊</h2>
+      <svg id="ageSvg" viewBox="0 0 720 420" role="img"></svg>
+    </div>
+    <div>
+      <h2>局部生长率</h2>
+      <svg id="rateSvg" viewBox="0 0 720 420" role="img"></svg>
+    </div>
+  </section>
+
+  <section class="panel two">
+    <div>
+      <h2>间断时长</h2>
+      <div id="hiatusDuration" class="metric"></div>
+    </div>
+    <div>
+      <h2>规则时间网格上的代理指标</h2>
+      <svg id="proxySvg" viewBox="0 0 720 420" role="img"></svg>
+      <p class="hint">灰色缺口为无年代支持；可覆盖率来自有效分支比例，不以跨间断插值补齐。</p>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>运行记录</h2>
+    <div class="table-wrap">
+      <table id="runsTable">
+        <thead><tr><th>时间</th><th>ID</th><th>状态</th><th>JSON</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<dialog id="importDialog">
+  <form method="dialog">
+    <h2>导入快照复核</h2>
+    <p>先清空数据库再导入，可重放运行记录。</p>
+    <input type="file" id="importFile" accept="application/json">
+    <menu>
+      <button value="cancel">取消</button>
+      <button id="importConfirm" value="default">导入</button>
+    </menu>
+  </form>
+</dialog>
+
+<script src="/app.js"></script>
+</body>
+</html>
